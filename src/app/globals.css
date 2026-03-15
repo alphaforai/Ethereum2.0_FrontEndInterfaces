@@ -121,6 +121,7 @@ body {
   from { width: 0 !important; }
 }
 
+/* ── Layout ── */
 .container {
   max-width: 1140px;
   margin: 0 auto;
@@ -136,8 +137,299 @@ body {
   margin-bottom: 24px;
 }
 
+/* ── Header (match HTML) ── */
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+}
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.nav-item {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.nav-item:hover {
+  color: var(--text);
+  background: rgba(29,111,255,0.08);
+}
+.nav-item.active {
+  color: var(--blue-bright);
+  background: rgba(29,111,255,0.1);
+}
+
+/* ── Hero stats (match HTML) ── */
+.hero-stats {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+  margin-bottom: 48px;
+}
+.hstat {
+  padding: 14px 28px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.hstat:last-child {
+  border-right: none;
+}
+.hstat-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+.hstat-val.blue { color: var(--blue-bright); }
+.hstat-val.green { color: var(--green); }
+.hstat-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* ── Stake card (match HTML) ── */
+.stake-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.stake-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--blue), var(--cyan), transparent);
+  opacity: 0.6;
+}
+.apy-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 28px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(29,111,255,0.06), rgba(0,194,255,0.03));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.receive-sub {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.token-input-val {
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  width: 160px;
+  max-width: 100%;
+}
+.token-input-val::placeholder {
+  color: rgba(220,232,255,0.15);
+}
+
+/* ── Right column / panels ── */
+.right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(29,111,255,0.5), transparent);
+}
+
+/* ── Bottom row (match HTML) ── */
+.bottom-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.bottom-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.bottom-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(29,111,255,0.4), transparent);
+}
+.points-panel {
+  grid-column: span 2;
+}
+
+/* ── Footer ── */
+.footer-bar {
+  border-top: 1px solid var(--border2);
+  padding: 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ── Hero typography ── */
+.h1-white { color: var(--text); }
+.h1-blue {
+  background: linear-gradient(135deg, var(--blue-bright) 0%, var(--cyan) 60%, #7eb8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Mobile: max-width 900px (tablet / small desktop)
+   ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
   .main-grid {
     grid-template-columns: 1fr;
+  }
+  .hero-stats {
+    flex-direction: column;
+  }
+  .hstat {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .hstat:last-child {
+    border-bottom: none;
+  }
+  .bottom-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .points-panel {
+    grid-column: span 2;
+  }
+  .apy-center {
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+  }
+  .stake-card {
+    padding: 22px;
+  }
+  .panel {
+    padding: 18px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Mobile: max-width 600px (phone)
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .container {
+    padding: 0 16px;
+  }
+  .header-inner {
+    height: 56px;
+  }
+  .header-nav {
+    display: none;
+  }
+  .hero {
+    padding-top: 48px;
+    padding-bottom: 36px;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 8vw, 44px);
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+  .hero-sub {
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+  .hero-stats {
+    margin-bottom: 32px;
+  }
+  .hstat {
+    padding: 12px 20px;
+  }
+  .hstat-val {
+    font-size: 18px;
+  }
+  .bottom-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .points-panel {
+    grid-column: span 1;
+  }
+  .bottom-panel {
+    padding: 16px;
+  }
+  .stake-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+  .apy-center {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px;
+    border-radius: 14px;
+  }
+  .panel {
+    padding: 16px;
+    border-radius: 14px;
+  }
+  .footer-bar {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 0;
+    gap: 12px;
+  }
+  .token-input-val {
+    font-size: 22px;
+    width: 100%;
+  }
+  .receive-amount {
+    font-size: 22px;
   }
 }

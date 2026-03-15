@@ -13,10 +13,10 @@ export function Header() {
       }}
     >
       <div className="container">
-        <div className="flex justify-between items-center h-16">
+        <div className="header-inner">
           <div className="flex items-center gap-3">
             <div
-              className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center"
+              className="w-[38px] h-[38px] rounded-[10px] flex items-center justify-center shrink-0"
               style={{
                 background: "linear-gradient(135deg, #1d6fff, #627eea)",
                 boxShadow: "0 0 20px rgba(29,111,255,0.5)",
@@ -24,26 +24,22 @@ export function Header() {
             >
               <span className="text-white text-xl font-bold leading-none">Ξ</span>
             </div>
-            <span className="text-lg font-bold tracking-tight" style={{ color: "var(--text)" }}>
+            <span className="text-lg font-bold tracking-[-0.3px]" style={{ color: "var(--text)" }}>
               Ether<span style={{ color: "var(--blue-bright)" }}>Prime</span>
             </span>
           </div>
-          <nav className="hidden sm:flex items-center gap-0.5">
+          <nav className="header-nav">
             {["Stake", "Portfolio", "Analytics", "Governance"].map((label, i) => (
               <button
                 key={label}
                 type="button"
-                className="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                style={{
-                  color: i === 0 ? "var(--blue-bright)" : "var(--muted)",
-                  background: i === 0 ? "rgba(29,111,255,0.1)" : "transparent",
-                }}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${i === 0 ? "nav-item active" : "nav-item"}`}
               >
                 {label}
               </button>
             ))}
           </nav>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <div
               className="flex items-center gap-1.5 font-mono text-[11px] rounded-lg px-3 py-1.5"
               style={{
