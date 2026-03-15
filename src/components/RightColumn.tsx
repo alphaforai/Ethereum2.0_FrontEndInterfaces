@@ -17,21 +17,9 @@ export function RightColumn() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="right-col">
       {/* Protocol Health */}
-      <div
-        className="rounded-[18px] p-5 relative overflow-hidden"
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <div
-          className="absolute top-0 left-0 right-0 h-px"
-          style={{
-            background: "linear-gradient(90deg, transparent, rgba(29,111,255,0.5), transparent)",
-          }}
-        />
+      <div className="panel">
         <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--muted)" }}>
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)]" />
           Protocol Health
@@ -86,19 +74,7 @@ export function RightColumn() {
       </div>
 
       {/* Validator Network */}
-      <div
-        className="rounded-[18px] p-5 relative overflow-hidden"
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <div
-          className="absolute top-0 left-0 right-0 h-px"
-          style={{
-            background: "linear-gradient(90deg, transparent, rgba(29,111,255,0.5), transparent)",
-          }}
-        />
+      <div className="panel">
         <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--muted)" }}>
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)]" />
           Validator Network
@@ -139,19 +115,7 @@ export function RightColumn() {
       </div>
 
       {/* Live Activity */}
-      <div
-        className="rounded-[18px] p-5 relative overflow-hidden"
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <div
-          className="absolute top-0 left-0 right-0 h-px"
-          style={{
-            background: "linear-gradient(90deg, transparent, rgba(29,111,255,0.5), transparent)",
-          }}
-        />
+      <div className="panel">
         <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--muted)" }}>
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue-bright)]" />
           Live Activity

@@ -1,14 +1,8 @@
 export function BottomRow() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-      {/* Season 2 Points - spans 2 cols on md */}
-      <div
-        className="md:col-span-2 rounded-[18px] p-5 relative overflow-hidden"
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-        }}
-      >
+    <div className="bottom-row">
+      {/* Season 2 Points - spans 2 cols at 900px, 1 at 600px */}
+      <div className="bottom-panel points-panel">
         <div
           className="absolute top-0 left-0 right-0 h-px"
           style={{
@@ -44,7 +38,7 @@ export function BottomRow() {
             />
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="level-row grid grid-cols-2 sm:grid-cols-5 gap-2">
           {[
             { num: 1, label: "Starter", done: true },
             { num: 3, label: "Builder", done: true },
@@ -73,13 +67,7 @@ export function BottomRow() {
       </div>
 
       {/* Refer & Earn */}
-      <div
-        className="rounded-[18px] p-5 relative overflow-hidden"
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-        }}
-      >
+      <div className="bottom-panel">
         <div
           className="absolute top-0 left-0 right-0 h-px"
           style={{

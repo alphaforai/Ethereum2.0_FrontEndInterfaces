@@ -27,19 +27,7 @@ export function StakeCard({ apy, apyStr }: StakeCardProps) {
   }, []);
 
   return (
-    <div
-      className="rounded-[20px] p-7 relative overflow-hidden"
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-      }}
-    >
-      <div
-        className="absolute top-0 left-0 right-0 h-px opacity-60"
-        style={{
-          background: "linear-gradient(90deg, transparent, var(--blue), var(--cyan), transparent)",
-        }}
-      />
+    <div className="stake-card">
       <div className="flex justify-between items-start mb-6">
         <span
           className="text-[13px] font-semibold uppercase tracking-wider"
@@ -61,13 +49,7 @@ export function StakeCard({ apy, apyStr }: StakeCardProps) {
       </div>
 
       {/* APY ring */}
-      <div
-        className="flex items-center justify-center gap-8 mb-7 p-6 rounded-2xl mb-7"
-        style={{
-          background: "linear-gradient(135deg, rgba(29,111,255,0.06), rgba(0,194,255,0.03))",
-          border: "1px solid var(--border)",
-        }}
-      >
+      <div className="apy-center">
         <div className="relative w-[120px] h-[120px]">
           <svg width="120" height="120" viewBox="0 0 120 120" className="-rotate-90">
             <defs>
@@ -150,14 +132,13 @@ export function StakeCard({ apy, apyStr }: StakeCardProps) {
             </div>
             <div className="font-mono text-[11px] mt-0.5" style={{ color: "var(--dim)" }}>Balance: 4.20 ETH</div>
           </div>
-          <div className="text-right">
+          <div className="text-right min-w-0 flex-1 sm:flex-none">
             <input
               type="number"
               value={ethAmount}
               onChange={(e) => setEthAmount(e.target.value)}
               placeholder="0.00"
-              className="bg-transparent border-none outline-none text-right w-40 text-[28px] font-bold font-sans"
-              style={{ color: "var(--text)" }}
+              className="token-input-val"
             />
             <div className="font-mono text-xs mt-0.5 text-right" style={{ color: "var(--dim)" }}>
               ≈ ${ethUsd.toLocaleString("en", { maximumFractionDigits: 2 })}
@@ -199,10 +180,10 @@ export function StakeCard({ apy, apyStr }: StakeCardProps) {
               epETH
             </span>
           </div>
-          <div className="text-[28px] font-bold mb-1" style={{ color: "var(--blue-bright)" }}>
+          <div className="receive-amount text-[28px] font-bold mb-1" style={{ color: "var(--blue-bright)" }}>
             {epethOut.toFixed(4)}
           </div>
-          <div className="text-xs flex gap-4" style={{ color: "var(--muted)" }}>
+          <div className="receive-sub">
             <span>≈ ${epethUsd.toLocaleString("en", { maximumFractionDigits: 0 })}</span>
             <span>Rate: 1 ETH = {RATE} epETH</span>
           </div>
