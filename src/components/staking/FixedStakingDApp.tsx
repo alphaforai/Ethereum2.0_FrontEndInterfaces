@@ -5,12 +5,14 @@ import Link from "next/link";
 import {
   useAccount,
   useBalance,
+  useChainId,
   useReadContract,
   useReadContracts,
   useWriteContract,
 } from "wagmi";
 import { useWaitForTransactionReceipt } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { parseEther } from "viem";
+import { formatEther4 } from "@/utils/formatEther4";
 import { type Address } from "viem";
 import { fixedStakingA_ContractConfig } from "@/config/fixedStakingA_ContractConfig";
 import { mainnet } from "wagmi/chains";
@@ -25,7 +27,7 @@ type DepositStruct = {
 };
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
-const MAX_POOLS = 6; // arbitrary scan range
+const MAX_POOLS = 20; // scan range for pools(i)
 const MAX_DEPOSITS = 5;
 const ZERO = BigInt("0");
 const APY_SCALE = BigInt("1000000000000000000"); // 1e18
@@ -53,12 +55,27 @@ function fmtTime(ts: bigint) {
   return d.toLocaleDateString();
 }
 
+function formatDurationHours(duration?: bigint) {
+  if (!duration) return "—";
+  // `pools(i).duration` is uint256 seconds
+  const hours = Number(duration) / 3600;
+  const s = hours.toFixed(2);
+  return s.replace(/\.?0+$/, "");
+}
+
 export function FixedStakingDApp() {
   const { address } = useAccount();
   const { data: balanceData } = useBalance({ address });
   const user = (address ?? ADDRESS_ZERO) as Address;
-  const chainId = mainnet.id;
+  const connectedChainId = useChainId();
+  const chainId = connectedChainId ?? mainnet.id;
   const { t } = useI18n();
+
+  const [nowMs, setNowMs] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 5000);
+    return () => window.clearInterval(id);
+  }, []);
 
   // Pools (duration + apy)
   const poolContracts = Array.from({ length: MAX_POOLS }, (_, i) => ({
@@ -74,13 +91,23 @@ export function FixedStakingDApp() {
 
   const poolsRaw = (poolsData ?? []).map((x: any) => x?.result);
   const pools = poolsRaw
-    .map((r: any, idx: number) => ({
-      id: BigInt(idx),
-      duration: r?.duration as bigint | undefined,
-      apy: r?.apy as bigint | undefined,
-      exists: r?.exists as boolean | undefined,
-    }))
-    .filter((p) => p.exists);
+    .map((r: any, idx: number) => {
+      // `pools(i)` likely returns a tuple: (duration, apy, exists)
+      // Depending on wagmi/viem version, it can be returned as object or array.
+      const duration = (r?.duration ?? r?.[0]) as bigint | undefined;
+      const apy = (r?.apy ?? r?.[1]) as bigint | undefined;
+      const existsRaw = r?.exists ?? r?.[2];
+      const exists =
+        typeof existsRaw === "boolean" ? existsRaw : existsRaw != null ? Boolean(existsRaw) : false;
+
+      return {
+        id: BigInt(idx),
+        duration,
+        apy,
+        exists,
+      };
+    })
+    .filter((p) => p.exists === true);
 
   const defaultPoolId = pools.length > 0 ? pools[0].id : ZERO;
   const [selectedPoolId, setSelectedPoolId] = React.useState<bigint>(defaultPoolId);
@@ -159,7 +186,10 @@ export function FixedStakingDApp() {
     const id = BigInt(i);
     if (nextDepositId !== undefined && id >= (nextDepositId as bigint)) return acc;
     if (dep.withdrawn) return acc;
-    return acc + (dep.amount as bigint);
+    const amountVal = dep.amount as unknown;
+    if (amountVal == null) return acc;
+    const amount = typeof amountVal === "bigint" ? amountVal : BigInt(amountVal as any);
+    return acc + amount;
   }, ZERO);
 
   // Actions
@@ -187,6 +217,7 @@ export function FixedStakingDApp() {
   };
 
   const onWithdraw = async (depositId: bigint) => {
+    if (isConfirming || txHash) return;
     if (!address) return;
     const hash = await writeWithdraw.writeContractAsync({
       ...fixedStakingA_ContractConfig,
@@ -198,6 +229,7 @@ export function FixedStakingDApp() {
   };
 
   const onCompoundMatured = async (depositId: bigint) => {
+    if (isConfirming || txHash) return;
     if (!address) return;
     const hash = await writeCompoundMatured.writeContractAsync({
       ...fixedStakingA_ContractConfig,
@@ -261,7 +293,7 @@ export function FixedStakingDApp() {
                 >
                   <div style={{ fontWeight: 900, fontSize: 13 }}>Pool #{p.id.toString()}</div>
                   <div style={{ fontFamily: "var(--font-jetbrains-mono)" as any, fontSize: 11, marginTop: 4, color: "var(--dim)" }}>
-                    Duration: {p.duration ? Number(p.duration) : 0} sec
+                    Duration: {formatDurationHours(p.duration)} hrs
                   </div>
                   <div style={{ fontWeight: 900, color: "var(--yellow)", marginTop: 6 }}>
                     APY: {formatApy(p.apy)}
@@ -324,28 +356,79 @@ export function FixedStakingDApp() {
                 const depositId = depositIds?.[idx] ?? ZERO;
                 const pending = pendingRewards?.[idx] ?? ZERO;
                 const pool = pools.find((p) => p.id === d.poolId);
+
+                const durationSec = pool?.duration;
+                let progressPct: number | null = null;
+                if (durationSec && durationSec > ZERO && d.startTime) {
+                  const startMs = Number(d.startTime) * 1000;
+                  const durMs = Number(durationSec) * 1000;
+                  const elapsed = nowMs - startMs;
+                  const raw = durMs > 0 ? elapsed / durMs : 0;
+                  const clamped = Math.max(0, Math.min(1, raw));
+                  progressPct = Math.round(clamped * 100);
+                }
+
                 return (
                   <div
                     key={`${depositId}-${idx}`}
-                    className="flex justify-between items-start py-3 border-b"
+                    className="fixed-deposit-row flex justify-between items-start py-3 border-b"
                     style={{ borderColor: "var(--border2)" }}
                   >
-                    <div style={{ minWidth: 240 }}>
+                    <div className="fixed-deposit-left" style={{ minWidth: 240 }}>
                       <div style={{ fontWeight: 900, color: "var(--text)" }}>
                         {t("fixed.depositLabel")} #{depositId.toString()}
                       </div>
                       <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
                         {t("fixed.poolLabel")}: {d.poolId.toString()} ·{" "}
-                        {pool?.duration ? `${Number(pool.duration)}s` : ""} ·{" "}
+                        {pool?.duration ? `${formatDurationHours(pool.duration)} hrs` : ""} ·{" "}
                         {pool?.apy ? "higher APY" : ""}
                       </div>
                       <div style={{ color: "var(--dim)", fontSize: 11, fontFamily: "var(--font-jetbrains-mono)" as any, marginTop: 4 }}>
                         {t("fixed.startLabel")}: {fmtTime(d.startTime)}
                       </div>
+
+                      {progressPct !== null && (
+                        <div style={{ marginTop: 10 }}>
+                          <div
+                            style={{
+                              height: 10,
+                              background: "rgba(29,111,255,0.10)",
+                              border: "1px solid rgba(29,111,255,0.22)",
+                              borderRadius: 999,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${progressPct}%`,
+                                height: "100%",
+                                background:
+                                  "linear-gradient(90deg, rgba(29,111,255,1), rgba(0,194,255,1))",
+                                boxShadow: "0 0 22px rgba(0,194,255,0.25)",
+                                transition: "width 0.4s ease",
+                              }}
+                            />
+                          </div>
+                          <div
+                            style={{
+                              marginTop: 6,
+                              fontSize: 11,
+                              color: "var(--dim)",
+                              fontFamily: "var(--font-jetbrains-mono)" as any,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 10,
+                            }}
+                          >
+                            <span>{progressPct}%</span>
+                            <span>{formatDurationHours(durationSec)} hrs</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ textAlign: "right" }}>
+                    <div className="fixed-deposit-actions" style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 900, color: "var(--cyan)" }}>
-                        {formatEther(d.amount)} ETH
+                        {formatEther4(d.amount)} ETH
                       </div>
                       <div
                         style={{
@@ -356,14 +439,14 @@ export function FixedStakingDApp() {
                         }}
                       >
                         {t("fixed.pending")}:{" "}
-                        {pending ? `${formatEther(pending)} ETH` : "0"}{" "}
+                        {pending ? `${formatEther4(pending)} ETH` : "0.0000"}{" "}
                       </div>
-                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 10, flexWrap: "wrap" }}>
+                      <div className="fixed-action-row" style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 10, flexWrap: "wrap" }}>
                         <button
                           type="button"
                           onClick={() => onWithdraw(depositId)}
-                          disabled={!address || d.withdrawn}
-                          className="rounded-[12px] px-3 py-2"
+                          disabled={!address || d.withdrawn || isConfirming}
+                          className="fixed-action-btn rounded-[12px] px-3 py-2"
                           style={{
                             background: "rgba(255,184,0,0.06)",
                             border: "1px solid rgba(255,184,0,0.18)",
@@ -376,8 +459,8 @@ export function FixedStakingDApp() {
                         <button
                           type="button"
                           onClick={() => onCompoundMatured(depositId)}
-                          disabled={!address || d.withdrawn}
-                          className="rounded-[12px] px-3 py-2"
+                          disabled={!address || d.withdrawn || isConfirming}
+                          className="fixed-action-btn rounded-[12px] px-3 py-2"
                           style={{
                             background: "rgba(29,111,255,0.06)",
                             border: "1px solid rgba(29,111,255,0.18)",
@@ -403,11 +486,11 @@ export function FixedStakingDApp() {
             </div>
             <div className="metric">
               <span className="metric-k">{t("fixed.totalApprox")}</span>
-              <span className="metric-v blue">{formatEther(fixedTotalApprox)} ETH</span>
+              <span className="metric-v blue">{formatEther4(fixedTotalApprox)} ETH</span>
             </div>
             <div className="metric">
               <span className="metric-k">{t("fixed.yourBalance")}</span>
-              <span className="metric-v">{balanceData ? `${formatEther(balanceData.value)} ETH` : "—"}</span>
+              <span className="metric-v">{balanceData ? `${formatEther4(balanceData.value)} ETH` : "—"}</span>
             </div>
             <div className="metric">
               <span className="metric-k">{t("fixed.yourDepositsCount")}</span>

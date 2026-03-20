@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { usePublicClient } from "wagmi";
-import { formatEther, parseAbiItem, type Address } from "viem";
+import { parseAbiItem, type Address } from "viem";
+import { formatEther4 } from "@/utils/formatEther4";
 import { wagmiContractConfig as flexibleContractConfig } from "@/config/FlexibleStakingB_ContractConfig";
 import { fixedStakingA_ContractConfig } from "@/config/fixedStakingA_ContractConfig";
 import { mainnet } from "wagmi/chains";
@@ -183,7 +184,7 @@ export function RankingDApp() {
                     </div>
                   </div>
                   <div style={{ fontFamily: "var(--font-jetbrains-mono)" as any, color: "var(--green)", fontWeight: 900 }}>
-                    {formatEther(it.amount)} ETH
+                    {formatEther4(it.amount)} ETH
                   </div>
                 </div>
               ))}
@@ -199,7 +200,7 @@ export function RankingDApp() {
           </div>
           <div className="metric">
             <span className="metric-k">{t("rank.top10")}</span>
-            <span className="metric-v blue">{formatEther(total)} ETH</span>
+            <span className="metric-v blue">{formatEther4(total)} ETH</span>
           </div>
           <div className="metric">
             <span className="metric-k">{t("rank.window")}</span>

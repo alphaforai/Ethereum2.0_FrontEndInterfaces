@@ -2,9 +2,17 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useAccount, useBalance, useReadContract, useReadContracts, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useBalance,
+  useChainId,
+  useReadContract,
+  useReadContracts,
+  useWriteContract,
+} from "wagmi";
 import { useWaitForTransactionReceipt, usePublicClient } from "wagmi";
-import { formatEther, parseAbiItem, parseEther, type Address } from "viem";
+import { parseAbiItem, parseEther, type Address } from "viem";
+import { formatEther4 } from "@/utils/formatEther4";
 
 import { wagmiContractConfig as flexibleContractConfig } from "@/config/FlexibleStakingB_ContractConfig";
 import { fixedStakingA_ContractConfig } from "@/config/fixedStakingA_ContractConfig";
@@ -37,9 +45,13 @@ export function FlexibleStakingDApp() {
   const { t } = useI18n();
 
   const user = (address ?? ADDRESS_ZERO) as Address;
-  const chainId = mainnet.id;
+  const connectedChainId = useChainId();
+  const chainId = connectedChainId ?? mainnet.id;
 
-  const { data: totalStaked } = useReadContract({
+  const {
+    data: totalStaked,
+    refetch: refetchTotalStaked,
+  } = useReadContract({
     ...flexibleContractConfig,
     chainId,
     functionName: "totalStaked",
@@ -75,7 +87,10 @@ export function FlexibleStakingDApp() {
     return acc + amount;
   }, ZERO);
 
-  const { data: userInfo } = useReadContract({
+  const {
+    data: userInfo,
+    refetch: refetchUserInfo,
+  } = useReadContract({
     ...flexibleContractConfig,
     chainId,
     functionName: "users",
@@ -83,7 +98,11 @@ export function FlexibleStakingDApp() {
     query: { enabled: Boolean(address) },
   });
 
-  const { data: pendingReward } = useReadContract({
+  const {
+    data: pendingReward,
+    refetch: refetchPendingReward,
+    error: pendingError,
+  } = useReadContract({
     ...flexibleContractConfig,
     chainId,
     functionName: "pending",
@@ -91,7 +110,14 @@ export function FlexibleStakingDApp() {
     query: { enabled: Boolean(address) },
   });
 
-  const userStaked = (userInfo as any)?.amount as bigint | undefined;
+  // `users(address)` 是 tuple 输出：(amount, rewardDebt)
+  // wagmi/viem 在某些情况下会返回数组形式 `[amount, rewardDebt]`，因此这里要同时兼容对象与数组。
+  const userStaked = React.useMemo(() => {
+    if (!userInfo) return undefined;
+    const anyInfo = userInfo as any;
+    const amountVal = anyInfo?.amount ?? anyInfo?.[0];
+    return typeof amountVal === "bigint" ? amountVal : undefined;
+  }, [userInfo]);
 
   // Actions
   const [depositAmount, setDepositAmount] = useState("0.1");
@@ -104,6 +130,9 @@ export function FlexibleStakingDApp() {
 
   const [history, setHistory] = React.useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = React.useState(false);
+  const [txInFlight, setTxInFlight] = React.useState<
+    null | "deposit" | "withdraw" | "claim" | "compound"
+  >(null);
 
   // Claim / compound (no args)
   const claimTx = useWriteContract();
@@ -210,61 +239,102 @@ export function FlexibleStakingDApp() {
   });
 
   const onDeposit = async () => {
+    if (txInFlight) return;
     const value = parseEther(depositAmount || "0");
     if (value <= ZERO) return;
-    const hash = await depositTx.writeContractAsync({
-      ...flexibleContractConfig,
-      chainId,
-      functionName: "deposit",
-      value,
-    });
-    setDepositHash(hash);
-    await loadHistory();
+    setTxInFlight("deposit");
+    try {
+      const hash = await depositTx.writeContractAsync({
+        ...flexibleContractConfig,
+        chainId,
+        functionName: "deposit",
+        value,
+      });
+      setDepositHash(hash);
+      if (!publicClient) return;
+      await publicClient.waitForTransactionReceipt({ hash });
+      refetchUserInfo();
+      refetchPendingReward();
+      refetchTotalStaked();
+      await loadHistory();
+    } finally {
+      setTxInFlight(null);
+    }
   };
 
   const onWithdraw = async () => {
+    if (txInFlight) return;
     const amount = parseEther(withdrawAmount || "0");
     if (amount <= ZERO) return;
-    const hash = await withdrawTx.writeContractAsync({
-      ...flexibleContractConfig,
-      chainId,
-      functionName: "withdraw",
-      args: [amount],
-    });
-    setWithdrawHash(hash);
-    await loadHistory();
+    setTxInFlight("withdraw");
+    try {
+      const hash = await withdrawTx.writeContractAsync({
+        ...flexibleContractConfig,
+        chainId,
+        functionName: "withdraw",
+        args: [amount],
+      });
+      setWithdrawHash(hash);
+      if (!publicClient) return;
+      await publicClient.waitForTransactionReceipt({ hash });
+      refetchUserInfo();
+      refetchPendingReward();
+      refetchTotalStaked();
+      await loadHistory();
+    } finally {
+      setTxInFlight(null);
+    }
   };
 
   const onClaim = async () => {
+    if (txInFlight) return;
     if (!publicClient) return;
-    const hash = await claimTx.writeContractAsync({
-      ...flexibleContractConfig,
-      chainId,
-      functionName: "claim",
-    });
-    setHistoryLoading(true);
-    await publicClient.waitForTransactionReceipt({ hash });
-    setHistoryLoading(false);
-    await loadHistory();
+    setTxInFlight("claim");
+    try {
+      const hash = await claimTx.writeContractAsync({
+        ...flexibleContractConfig,
+        chainId,
+        functionName: "claim",
+      });
+      setHistoryLoading(true);
+      await publicClient.waitForTransactionReceipt({ hash });
+      setHistoryLoading(false);
+      refetchUserInfo();
+      refetchPendingReward();
+      refetchTotalStaked();
+      await loadHistory();
+    } finally {
+      setTxInFlight(null);
+    }
   };
 
   const onCompound = async () => {
+    if (txInFlight) return;
     if (!publicClient) return;
-    const hash = await compoundTx.writeContractAsync({
-      ...flexibleContractConfig,
-      chainId,
-      functionName: "compound",
-    });
-    setHistoryLoading(true);
-    await publicClient.waitForTransactionReceipt({ hash });
-    setHistoryLoading(false);
-    await loadHistory();
+    setTxInFlight("compound");
+    try {
+      const hash = await compoundTx.writeContractAsync({
+        ...flexibleContractConfig,
+        chainId,
+        functionName: "compound",
+      });
+      setHistoryLoading(true);
+      await publicClient.waitForTransactionReceipt({ hash });
+      setHistoryLoading(false);
+      refetchUserInfo();
+      refetchPendingReward();
+      refetchTotalStaked();
+      await loadHistory();
+    } finally {
+      setTxInFlight(null);
+    }
   };
 
   const appTotal = (totalStaked ?? ZERO) + fixedTotalApprox;
-  const tvl = appTotal ? formatEther(appTotal) : "0";
-  const stakedStr = userStaked ? formatEther(userStaked) : "0";
-  const pendingStr = pendingReward ? formatEther(pendingReward) : "0";
+  const tvl = appTotal ? formatEther4(appTotal) : "0.0000";
+  const stakedStr = userStaked !== undefined ? formatEther4(userStaked) : "--";
+  const pendingStr =
+    pendingReward !== undefined ? formatEther4(pendingReward) : pendingError ? "ERR" : "--";
 
   return (
     <>
@@ -297,7 +367,7 @@ export function FlexibleStakingDApp() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("flex.yourStaked")}</div>
               <div style={{ fontSize: 26, fontWeight: 800, color: "var(--text)" }}>
-                {address ? stakedStr : "—"} ETH
+              {address ? stakedStr : "--"} ETH
               </div>
               <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 4 }}>
                 {t("flex.claimable")}:{" "}
@@ -314,7 +384,7 @@ export function FlexibleStakingDApp() {
                 {address ? shortAddr(address) : "Not connected"}
               </div>
               <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 700, marginTop: 6 }}>
-                {t("flex.ethBalance")}: {balanceData ? formatEther(balanceData.value) : "—"} ETH
+              {t("flex.ethBalance")}: {balanceData ? formatEther4(balanceData.value) : "—"} ETH
               </div>
             </div>
           </div>
@@ -334,11 +404,13 @@ export function FlexibleStakingDApp() {
             <button
               type="button"
               onClick={onDeposit}
-              disabled={!address || isDepositing}
+              disabled={!address || txInFlight !== null}
               className="stake-btn"
               style={{ width: 200, padding: 14, opacity: !address ? 0.6 : 1 }}
             >
-              {isDepositing ? "⏳ Depositing..." : `⚡ ${t("flex.deposit")}`}
+              {txInFlight === "deposit"
+                ? "⏳ Depositing..."
+                : `⚡ ${t("flex.deposit")}`}
             </button>
           </div>
 
@@ -357,11 +429,13 @@ export function FlexibleStakingDApp() {
             <button
               type="button"
               onClick={onWithdraw}
-              disabled={!address || isWithdrawing}
+              disabled={!address || txInFlight !== null}
               className="stake-btn"
               style={{ width: 200, padding: 14, opacity: !address ? 0.6 : 1 }}
             >
-              {isWithdrawing ? "⏳ Withdrawing..." : `↩ ${t("flex.withdraw")}`}
+              {txInFlight === "withdraw"
+                ? "⏳ Withdrawing..."
+                : `↩ ${t("flex.withdraw")}`}
             </button>
           </div>
 
@@ -369,7 +443,7 @@ export function FlexibleStakingDApp() {
             <button
               type="button"
               onClick={onClaim}
-              disabled={!address || historyLoading}
+              disabled={!address || txInFlight !== null}
               className="rounded-[14px] px-4 py-3"
               style={{
                 background: "rgba(0,229,160,0.08)",
@@ -379,12 +453,12 @@ export function FlexibleStakingDApp() {
                 flex: 1,
               }}
             >
-              💰 {t("flex.claim")}
+              💰 {txInFlight === "claim" ? "Claiming..." : t("flex.claim")}
             </button>
             <button
               type="button"
               onClick={onCompound}
-              disabled={!address || historyLoading}
+              disabled={!address || txInFlight !== null}
               className="rounded-[14px] px-4 py-3"
               style={{
                 background: "rgba(29,111,255,0.08)",
@@ -394,7 +468,7 @@ export function FlexibleStakingDApp() {
                 flex: 1,
               }}
             >
-              🔁 {t("flex.compound")}
+              🔁 {txInFlight === "compound" ? "Compounding..." : t("flex.compound")}
             </button>
           </div>
 
@@ -422,9 +496,9 @@ export function FlexibleStakingDApp() {
                     tx: {h.txHash.slice(0, 10)}...
                   </div>
                   <div style={{ fontFamily: "var(--font-jetbrains-mono)" as any, fontSize: 11 }}>
-                    {h.amount !== undefined && `amount: ${formatEther(h.amount)} ETH`}
-                    {h.reward !== undefined && `reward: ${formatEther(h.reward)} ETH`}
-                    {h.newAmount !== undefined && `new: ${formatEther(h.newAmount)} ETH`}
+                    {h.amount !== undefined && `amount: ${formatEther4(h.amount)} ETH`}
+                    {h.reward !== undefined && `reward: ${formatEther4(h.reward)} ETH`}
+                    {h.newAmount !== undefined && `new: ${formatEther4(h.newAmount)} ETH`}
                   </div>
                 </div>
               ))}
