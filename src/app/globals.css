@@ -302,6 +302,27 @@ body {
   opacity: 1;
 }
 
+.stake-btn:active {
+  transform: translateY(2px) scale(0.96);
+  box-shadow: 0 3px 14px rgba(29,111,255,0.65);
+}
+
+/* Click animation for all buttons */
+button {
+  transition: transform 120ms ease, box-shadow 180ms ease, filter 180ms ease,
+    opacity 180ms ease;
+  transform-origin: center;
+}
+
+button:active {
+  transform: translateY(2px) scale(0.97);
+  filter: brightness(1.14);
+}
+
+.stake-btn:active::after {
+  opacity: 1;
+}
+
 .btn-sub {
   font-size: 11px;
   color: rgba(255,255,255,0.55);
@@ -578,5 +599,26 @@ body {
     padding: 8px 10px !important;
     height: 34px;
     font-size: 10px;
+  }
+
+  /* Fixed staking deposit row mobile layout */
+  .fixed-deposit-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .fixed-deposit-left {
+    min-width: 0 !important;
+  }
+  .fixed-deposit-actions {
+    text-align: left !important;
+  }
+  .fixed-action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .fixed-action-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
