@@ -14,6 +14,7 @@ const APY_MAX = 5.3;
 export function StakePage() {
   const [apy, setApy] = useState(4.87);
 
+  // 模拟APY变化
   useEffect(() => {
     const t = setInterval(() => {
       setApy((prev) => {
