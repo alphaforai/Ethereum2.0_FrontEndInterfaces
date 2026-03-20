@@ -1,11 +1,25 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import React from "react";
+import { useI18n } from "@/i18n/useI18n";
+import { locales } from "@/i18n/locales";
 
 export function Header() {
+  const pathname = usePathname();
+  const { locale, setLocale, t } = useI18n();
+
+  const nav = [
+    { label: t("header.nav.stake"), href: "/" },
+    { label: t("header.nav.portfolio"), href: "/" },
+    { label: t("header.nav.analytics"), href: "/ranking" },
+    { label: t("header.nav.governance"), href: "/fixed" },
+  ];
   return (
     <header
-      className="border-b sticky top-0 z-[100]"
+      className="border-b sticky top-0 z-100"
       style={{
         borderColor: "var(--border)",
         backdropFilter: "blur(24px)",
@@ -29,17 +43,22 @@ export function Header() {
             </span>
           </div>
           <nav className="header-nav">
-            {["Stake", "Portfolio", "Analytics", "Governance"].map((label, i) => (
-              <button
-                key={label}
-                type="button"
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${i === 0 ? "nav-item active" : "nav-item"}`}
-              >
-                {label}
-              </button>
-            ))}
+            {nav.map((item) => {
+              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    active ? "nav-item active" : "nav-item"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="prime-header-actions flex items-center gap-2 sm:gap-2.5 shrink-0">
             <div
               className="flex items-center gap-1.5 font-mono text-[11px] rounded-lg px-3 py-1.5"
               style={{
@@ -49,13 +68,36 @@ export function Header() {
               }}
             >
               <span
-                className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse"
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
                 style={{ animation: "netpulse 2s infinite" }}
               />
-              Mainnet
+              {t("header.badge.mainnet")}
             </div>
+
+            <select
+              aria-label="Language"
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as any)}
+              className="prime-lang-select"
+              style={{
+                background: "rgba(13,31,60,0.35)",
+                border: "1px solid var(--border2)",
+                color: "var(--text)",
+                borderRadius: 12,
+                padding: "10px 10px",
+                fontSize: 12,
+                outline: "none",
+              }}
+            >
+              {locales.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+
             <ConnectButton
-              label="Connect Wallet"
+              label={t("header.connectWalletShort")}
               showBalance={false}
               chainStatus="icon"
             />
