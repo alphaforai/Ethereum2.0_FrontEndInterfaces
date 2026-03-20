@@ -32,6 +32,7 @@ const MAX_DEPOSITS = 5;
 const ZERO = BigInt("0");
 const APY_SCALE = BigInt("1000000000000000000"); // 1e18
 const APY_HINT = BigInt("1000000000000"); // if apy >= 1e12 assume 1e18-scaled
+const SIXTY = BigInt("60");
 
 function formatApy(apy?: bigint) {
   if (!apy) return "—";
@@ -63,6 +64,15 @@ function formatDurationHours(duration?: bigint) {
   return s.replace(/\.?0+$/, "");
 }
 
+function formatSecondsToHoursMins(secondsLeft: bigint) {
+  if (secondsLeft <= ZERO) return "0m";
+  const totalMins = secondsLeft / SIXTY;
+  const hours = totalMins / BigInt(60);
+  const mins = totalMins % BigInt(60);
+  if (hours <= ZERO) return `${mins.toString()}m`;
+  return `${hours.toString()}h ${mins.toString()}m`;
+}
+
 export function FixedStakingDApp() {
   const { address } = useAccount();
   const { data: balanceData } = useBalance({ address });
@@ -76,6 +86,8 @@ export function FixedStakingDApp() {
     const id = window.setInterval(() => setNowMs(Date.now()), 5000);
     return () => window.clearInterval(id);
   }, []);
+
+  const nowSec = BigInt(Math.floor(nowMs / 1000));
 
   // Pools (duration + apy)
   const poolContracts = Array.from({ length: MAX_POOLS }, (_, i) => ({
@@ -358,6 +370,10 @@ export function FixedStakingDApp() {
                 const pool = pools.find((p) => p.id === d.poolId);
 
                 const durationSec = pool?.duration;
+                const endTimeSec = durationSec ? d.startTime + durationSec : null;
+                const matured = endTimeSec ? nowSec >= endTimeSec : false;
+                const timeLeftSec =
+                  endTimeSec && endTimeSec > nowSec ? endTimeSec - nowSec : ZERO;
                 let progressPct: number | null = null;
                 if (durationSec && durationSec > ZERO && d.startTime) {
                   const startMs = Number(d.startTime) * 1000;
@@ -445,7 +461,7 @@ export function FixedStakingDApp() {
                         <button
                           type="button"
                           onClick={() => onWithdraw(depositId)}
-                          disabled={!address || d.withdrawn || isConfirming}
+                          disabled={!address || d.withdrawn || isConfirming || !matured}
                           className="fixed-action-btn rounded-[12px] px-3 py-2"
                           style={{
                             background: "rgba(255,184,0,0.06)",
@@ -454,12 +470,12 @@ export function FixedStakingDApp() {
                             fontWeight: 900,
                           }}
                         >
-                          ↩ {t("fixed.withdraw")}
+                          {matured ? `↩ ${t("fixed.withdraw")}` : `⏳ Locked ${formatSecondsToHoursMins(timeLeftSec)}`}
                         </button>
                         <button
                           type="button"
                           onClick={() => onCompoundMatured(depositId)}
-                          disabled={!address || d.withdrawn || isConfirming}
+                          disabled={!address || d.withdrawn || isConfirming || !matured}
                           className="fixed-action-btn rounded-[12px] px-3 py-2"
                           style={{
                             background: "rgba(29,111,255,0.06)",
@@ -468,7 +484,7 @@ export function FixedStakingDApp() {
                             fontWeight: 900,
                           }}
                         >
-                          🔁 {t("fixed.compound")}
+                          {matured ? `🔁 ${t("fixed.compound")}` : `⏳ Locked`}
                         </button>
                       </div>
                     </div>
