@@ -1,4 +1,10 @@
+ "use client";
+
+import { useI18n } from "@/i18n/useI18n";
+
 export function Hero({ liveApy }: { liveApy: string }) {
+  const { t } = useI18n();
+  const [titleLine1, titleLine2] = (t("hero.title1") ?? "").split("\n");
   return (
     <section className="hero pt-[72px] pb-[52px] text-center">
       <div className="container">
@@ -18,31 +24,38 @@ export function Hero({ liveApy }: { liveApy: string }) {
           >
             ⚡
           </span>
-          Season 2 Points Live · 2× Multiplier Active
+          {t("hero.eyebrow")}
         </div>
         <h1 className="text-[clamp(40px,6vw,72px)] font-extrabold leading-[1.05] tracking-[-2px] mb-5">
-          <span className="h1-white">Liquid Staking<br />for the </span>
-          <span className="h1-blue">Ethereum Age</span>
+          <span className="h1-white">
+            {titleLine1}
+            <br />
+            {titleLine2}
+          </span>
+          <span className="h1-blue">{t("hero.title2")}</span>
         </h1>
-        <p className="hero-sub text-[17px] max-w-[500px] mx-auto mb-9 leading-[1.75] font-normal" style={{ color: "var(--muted)" }}>
-          Non-custodial ETH staking with instant liquidity, real-time rewards, and protocol points. No lock-ups.
+        <p
+          className="hero-sub text-[17px] max-w-[500px] mx-auto mb-9 leading-[1.75] font-normal"
+          style={{ color: "var(--muted)" }}
+        >
+          {t("hero.subtitle")}
         </p>
         <div className="hero-stats">
           <div className="hstat">
             <span className="hstat-val blue">$2.84B</span>
-            <span className="hstat-label">Total Value Locked</span>
+            <span className="hstat-label">{t("hero.stats.tvl")}</span>
           </div>
           <div className="hstat">
             <span className="hstat-val">{liveApy}</span>
-            <span className="hstat-label">Live APY</span>
+            <span className="hstat-label">{t("hero.stats.liveApy")}</span>
           </div>
           <div className="hstat">
             <span className="hstat-val green">28,814</span>
-            <span className="hstat-label">Active Validators</span>
+            <span className="hstat-label">{t("hero.stats.validators")}</span>
           </div>
           <div className="hstat">
             <span className="hstat-val">48,391</span>
-            <span className="hstat-label">Stakers</span>
+            <span className="hstat-label">{t("hero.stats.stakers")}</span>
           </div>
         </div>
       </div>
